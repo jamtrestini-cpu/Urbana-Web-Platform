@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mi cuenta | Urbana</title>
+<link rel="stylesheet" href="/static/urbana.css">
+
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4/dist/model-viewer.min.js"></script>
+</head><body>
+<header><a class="logo" href="pagina%20web%20inicio.html">URBANA</a>
+<nav><a href="Catalogo-1.html">Catálogo</a><a href="pago.html">Pago</a>
+  <a id="navCuenta" href="/static/login.html">Mi cuenta</a><a href="login.html#admin">Admin</a>
+<a href="login.html" class="cart-badge">🛍️ <span id="cartCount">0</span></a></nav></header>
+<main class="narrow" id="app"></main>
+<script src="/static/urbana.js"></script>
+
+<script>
+function pintar(){
+ const s = getSession();
+if (!s || s.rol !== 'cliente') { location.href = '/login'; return; }
+
+
+ const u = miUsuario();
+ const favs = (u.favoritos || []).map(id => PRODUCTOS.find(p => p.id === id)).filter(Boolean);
+ $('app').innerHTML = `
+  <section class="card">
+   <h2>Hola, ${esc(u.nombre)}</h2>
+   <p><small>${esc(u.email)}${u.telefono ? ' · ' + esc(u.telefono) : ''}</small></p>
+   <p style="margin-top:16px">${u.socio ? '⭐ <b>Membresía activa</b> — 10% de descuento automático' : 'Sin membresía activa'}</p>
+   ${u.socio ? '' : `<a class="btn" href="pago.html#membresia">Activar membresía</a>`}
+   <br><br><button class="btn k" onclick="logout()">Cerrar sesión</button>
+  </section>
+  <section class="card"><h2>Tus favoritos</h2><div class="grid" id="favGrid"></div></section>
+  <section class="card"><h2>Tus pedidos</h2><div id="mp"><small>Cargando…</small></div></section>`;
+ $('favGrid').innerHTML = favs.length ? favs.map(p => tileHTML(p)).join('') : '<p><small>Aún no tienes favoritos — márcalos con el corazón en el catálogo.</small></p>';
+ wireGrid($('favGrid'));
+ cargarPedidosCliente(u.email);
+}
+async function cargarPedidosCliente(email){
+ try {
+  const O = await (await fetch(API + '/pedidos')).json();
+  const mios = O.filter(x => x.email && x.email.toLowerCase() === email.toLowerCase());
+  $('mp').innerHTML = mios.map(x => `<p>${esc(x.fecha)} · ${esc(x.productos)} · ${money(x.total)} ·
+   <small>${x.estado === 'confirmado' ? '✅ Confirmado' : '⏳ Pendiente'}</small></p>`).join('') || '<small>Aún no tienes pedidos.</small>';
+ } catch (e) { $('mp').innerHTML = '<small>No se pudo conectar con el servidor.</small>'; }
+}
+iniciarPagina(pintar);
+
+</script></body></html>

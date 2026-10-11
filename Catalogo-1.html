@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catálogo | Urbana</title>
+<link rel="stylesheet" href="/static/urbana.css">
+
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4/dist/model-viewer.min.js"></script>
+</head><body>
+<header><a class="logo" href="pagina%20web%20inicio.html">URBANA</a>
+<nav><a href="Catalogo-1.html">Catálogo</a><a href="pago.html">Pago</a>
+<a id="navCuenta" href="login.html">Mi cuenta</a><a href="login.html#admin">Admin</a>
+<a href="Catalogo-1.html" class="cart-badge">🛍️ <span id="cartCount">0</span></a></nav></header>
+<main class="catalogo">
+<section>
+<input id="q" placeholder="🔍  Buscar en Urbana…">
+<div class="chips" id="chips"></div>
+<div class="grid" id="grid"></div>
+</section>
+<aside><h2>Tu carrito</h2><ul id="lista"></ul><div id="total"></div>
+<button id="pagarBtn" class="btn" style="width:100%" disabled onclick="location.href='pago.html'">Proceder al pago</button></aside>
+</main>
+<script src="/static/urbana.js"></script>
+
+<script>
+let filtroCat = 'Todas', filtroQ = '';
+function pintar(){
+ const cats = ['Todas', ...new Set(PRODUCTOS.map(p => p.c).filter(Boolean))];
+ $('chips').innerHTML = cats.map(c => `<button class="chip ${c === filtroCat ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+ $('chips').querySelectorAll('.chip').forEach(b => b.onclick = () => { filtroCat = b.dataset.c; pintar(); });
+ const lista = PRODUCTOS.filter(p => (filtroCat === 'Todas' || p.c === filtroCat) && p.n.toLowerCase().includes(filtroQ.toLowerCase()));
+ const editando = isAdmin() && L('urbana_editando', false);
+ $('grid').innerHTML = (lista.map(p => tileHTML(p)).join('') || '<p><small>Sin resultados</small></p>') + (editando ? nodoAgregarHTML() : '');
+ wireGrid($('grid'));
+ carro();
+}
+$('q').oninput = () => { filtroQ = $('q').value; pintar(); };
+function carro(){
+ const { d, total } = totalCarrito();
+ $('lista').innerHTML = CARRITO.map((x, i) => `<li data-i="${i}"><span>${esc(x.n)}${x.talla ? ' · Talla ' + esc(x.talla) : ''} ×${x.q}<br><small>${money(x.p * x.q)}</small></span>
+  <button class="quitar" title="Eliminar">✕</button></li>`).join('') || '<li><small>Tu carrito está vacío</small></li>';
+ $('lista').querySelectorAll('.quitar').forEach(b => b.onclick = () => {
+  CARRITO.splice(+b.closest('li').dataset.i, 1); S('urbana_carrito', CARRITO); carro();
+ });
+ $('total').innerHTML = (esSocio() ? `<small>Socio −10%: −${money(d)}</small><br>` : '') + 'Total ' + money(total);
+ $('pagarBtn').disabled = !CARRITO.length;
+}
+document.addEventListener('urbana:carrito', carro);
+iniciarPagina(pintar);
+</script></body></html>

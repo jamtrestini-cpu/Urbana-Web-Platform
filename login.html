@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mi cuenta | Urbana</title>
+<link rel="stylesheet" href="/static/urbana.css">
+
+</head><body>
+<header><a class="logo" href="pagina%20web%20inicio.html">URBANA</a>
+<nav><a href="Catalogo-1.html">Catálogo</a><a href="pago.html">Pago</a>
+<a id="navCuenta" href="login.html">Mi cuenta</a><a href="login.html#admin">Admin</a>
+<a href="Catalogo-1.html" class="cart-badge">🛍️ <span id="cartCount">0</span></a></nav></header>
+<main class="acceso">
+ <section class="card">
+  <div class="tabs"><button id="tin" class="on">Iniciar sesión</button><button id="tup">Crear cuenta</button></div>
+  <div id="fin"><input id="ie" type="email" placeholder="Email"><input id="ip" type="password" placeholder="Contraseña"><button class="btn" onclick="entrar()">Entrar</button></div>
+  <div id="fup" hidden><input id="rn" placeholder="Nombre"><input id="re" type="email" placeholder="Email">
+   <input id="rt" placeholder="Teléfono"><input id="rp" type="password" placeholder="Contraseña (mín. 6)">
+   <button class="btn" onclick="registrar()">Crear cuenta</button></div>
+  <p class="msg" id="mc"></p>
+ </section>
+ <section class="card a" id="cajaAdmin">
+  <h2>🔒 Administración</h2>
+  <input id="ap" type="password" placeholder="Contraseña de administrador">
+  <button class="btn k" onclick="admin()">Acceder</button><p class="msg" id="ma"></p>
+  <small>Acceso exclusivo del dueño. Las cuentas nuevas son siempre de cliente.</small>
+ </section>
+</main><script src="/static/urbana.js"></script>
+
+<script>
+
+function tab(t){ ['in', 'up'].forEach(k => { $('f' + k).hidden = k !== t; $('t' + k).classList.toggle('on', k === t); }); $('mc').textContent = ''; }
+$('tin').onclick = () => tab('in'); $('tup').onclick = () => tab('up');
+
+function registrar(){
+ const n = $('rn').value.trim(), e = $('re').value.trim().toLowerCase(), tel = $('rt').value.trim(), p = $('rp').value;
+ if (!n || !/\S+@\S+\.\S+/.test(e) || p.length < 6) return $('mc').textContent = 'Completa nombre, email válido y contraseña (mín. 6)';
+ if (USERS.some(u => u.email === e)) return $('mc').textContent = 'Ese email ya está registrado';
+ USERS.push({ nombre: n, email: e, telefono: tel, pw: p, rol: 'cliente', socio: false, favoritos: [] });
+ S('urbana_users', USERS);
+ fetch(API + '/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: n, email: e }) }).catch(() => {});
+ ok(n, e);
+}
+function entrar(){
+ const e = $('ie').value.trim().toLowerCase(), u = USERS.find(x => x.email === e && x.pw === $('ip').value);
+ u ? ok(u.nombre, u.email) : $('mc').textContent = 'Email o contraseña incorrectos';
+}
+function ok(nombre, email){ S('urbana_sesion', { nombre, email, rol: 'cliente' }); location.href = '/catalogo'; }
+
+function pintarAcceso(){
+ const s = getSession();
+ if (s?.rol === 'admin') {
+  $('cajaAdmin').innerHTML = `<h2>🔒 Administración</h2><p>Sesión activa como <b>Administrador</b>.</p>
+  
+   <a class="btn" href="/">Ir a editar la tienda</a>
+
+   <button class="btn k" onclick="logout()">Salir</button>`;
+ }
+}
+function admin(){
+    if ($('#ap').value !== ADMIN_PW) return $('#ma').textContent = 'Contraseña incorrecta';
+    
+    // Calculamos la fecha de vencimiento (Hoy + 30 días)
+    let hoy = new Date();
+    hoy.setDate(hoy.getDate() + 30);
+    let fechaVence = hoy.toISOString().split('T')[0]; // Guarda formato YYYY-MM-DD
+    
+    // Guardamos la sesión agregando la fecha de vencimiento
+    S('urbana_sesion', { nombre: 'Administrador', rol: 'admin', vence: fechaVence });
+    S('urbana_editando', true); // entra directo en modo edición, sobre la propia tienda
+    location.href = '/';
+}
+
+
+iniciarPagina(() => { pintarAcceso(); if (location.hash === '#admin') $('ap')?.focus(); });
+
+// Calculamos la fecha de vencimiento (Hoy + 30 días)
+let hoy = new Date();
+hoy.setDate(hoy.getDate() + 30); 
+let fechaVence = hoy.toISOString().split('T')[0]; // Guarda formato YYYY-MM-DD
+
+// Guardamos la sesión agregando la fecha de vencimiento
+S('urbana_sesion', { nombre: 'Administrador', rol: 'admin', vence: fechaVence });
+
+
+function iniciarPagina() {
+    let s = getSession(); // Trae la sesión actual
+    
+    // Si hay una sesión activa, verificamos si ya venció el mes
+    if (s && s.vence) {
+        let hoy = new Date().toISOString().split('T')[0];
+        if (hoy > s.vence) {
+            // SI YA VENCIÓ: Borramos la sesión y bloqueamos la pantalla
+            S('urbana_sesion', null); 
+            document.body.innerHTML = `
+                <div style="text-align:center; margin-top:100px; font-family:sans-serif;">
+                    <h2>⚠️ Tienda en Mantenimiento</h2>
+                    <p>El servicio de esta plataforma se encuentra temporalmente suspendido.</p>
+                    <p>Por favor, contacte al administrador del sistema.</p>
+                </div>`;
+            return; // Detiene el resto del código para que no cargue nada más
+        }
+    }
+
+  // Si no ha vencido, el código sigue su curso normal:
+pintarAcceso();
+
+function admin() {
+    if ($('#ap')?.value !== ADMIN_PW) return $('#ma').textContent = 'Contraseña incorrecta';
+    
+    // Aquí abajo sigue tu código que calcula la fecha de vencimiento y redirige...
+    let hoy = new Date();
+    // ... todo lo demás que ya guardaste ...
+}
+
+
+
+}
+
+</script></body></html>

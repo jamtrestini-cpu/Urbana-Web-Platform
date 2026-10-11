@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pago | Urbana</title>
+<link rel="stylesheet" href="/static/urbana.css">
+
+</head><body>
+<header><a class="logo" href="pagina%20web%20inicio.html">URBANA</a>
+<nav><a href="Catalogo-1.html">Catálogo</a><a href="pago.html">Pago</a>
+<a id="navCuenta" href="login.html">Mi cuenta</a><a href="login.html#admin">Admin</a>
+<a href="Catalogo-1.html" class="cart-badge">🛍️ <span id="cartCount">0</span></a></nav></header>
+<main class="narrow">
+<section class="card"><h2>1 · Tu pedido</h2><ul id="res"></ul><p><b id="tot"></b></p>
+<input id="cli" placeholder="Tu nombre completo"><input id="mail" type="email" placeholder="Tu email (para la confirmación)"></section>
+<section class="card"><h2>2 · Pago móvil / Transferencia</h2><pre id="datos" data-edit="datos"></pre>
+<button class="btn" style="width:100%" onclick="pagar()">Confirmar Pago por WhatsApp</button>
+<p><small>Adjunta la captura del pago en el chat; el operador lo verificará manualmente.</small></p></section>
+<section class="card vip" id="membresia"><h2>⭐ Membresía Urbana</h2>
+<p>Tarifa mensual <b id="fee"></b>: <b>10% de descuento automático</b> en todo el catálogo y un formulario prioritario para pedir descuentos especiales o ropa bajo pedido.</p>
+<div id="sinSesion"><p><small>Inicia sesión para activar tu membresía.</small></p><a class="btn" href="login.html">Iniciar sesión</a></div>
+<div id="no" hidden><button class="btn" onclick="suscribir()">Suscribirme por WhatsApp</button>
+<p><small>¿Ya pagaste? Escribe el código de activación que te dio el operador:</small></p>
+<input id="cod" placeholder="Código de activación"><button class="btn k" onclick="activar()">Activar</button></div>
+<div id="si" hidden><p><b>✅ Membresía activa</b></p>
+<textarea id="pm" rows="3" placeholder="Describe el descuento o la prenda bajo pedido"></textarea>
+<button class="btn" onclick="prio()">Enviar solicitud prioritaria</button></div></section>
+</main>
+<script src="urbana.js"></script>
+<script>
+const wa = t => 'https://wa.me/' + (CFG.wa || '000000000') + '?text=' + encodeURIComponent(t);
+function pintar(){
+ const { total } = totalCarrito();
+ $('res').innerHTML = CARRITO.map(x => `<li>${esc(x.n)}${x.talla ? ' · Talla ' + esc(x.talla) : ''} ×${x.q} — ${money(x.p * x.q)}</li>`).join('') || '<li>Carrito vacío · <a href="Catalogo-1.html"><u>Ir al catálogo</u></a></li>';
+ $('tot').textContent = 'Total: ' + money(total) + (esSocio() ? ' (−10% socio)' : '');
+ $('fee').textContent = money(+CFG.tarifa || 5);
+ $('datos').textContent = CFG.datos || CFG_BASE.datos;
+ const u = miUsuario();
+ $('cli').value = u?.nombre || '';
+ $('mail').value = u?.email || '';
+ $('sinSesion').hidden = !!getSession();
+ $('no').hidden = !getSession() || esSocio();
+ $('si').hidden = !esSocio();
+}
+async function pagar(){
+ const c = $('cli').value.trim(), mail = $('mail').value.trim();
+ if (!c || !CARRITO.length) return toast('Escribe tu nombre y añade productos al carrito');
+ const { total } = totalCarrito();
+ const w = window.open('', '_blank');
+ let codigo = '';
+ try {
+  const r = await fetch(API + '/pedido', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ cliente: c, email: mail, productos: CARRITO.map(x => x.n + (x.talla ? ' (Talla ' + x.talla + ')' : '') + ' x' + x.q).join(', '),
+   items: JSON.stringify(CARRITO.map(x => ({ id: x.id, q: x.q }))), total: +total.toFixed(2) }) });
+  codigo = (await r.json()).codigo || '';
+ } catch (e) {}
+ (w || window).location.href = wa(`Hola, soy ${c}. Envío el comprobante de mi pedido URBANA ${codigo ? ('#' + codigo) : ''}:\n` +
+  CARRITO.map(x => `• ${x.n}${x.talla ? ' (Talla ' + x.talla + ')' : ''} x${x.q}`).join('\n') + `\nTotal: ${money(total)}`);
+ CARRITO = []; S('urbana_carrito', CARRITO);
+}
+function suscribir(){
+ const u = miUsuario(); if (!u) return;
+ window.open(wa(`Hola, soy ${u.nombre} (${u.email}). Quiero suscribirme a la Membresía Urbana (${money(+CFG.tarifa || 5)}/mes). Adjunto mi comprobante.`), '_blank');
+ fetch(API + '/suscripcion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: u.nombre, email: u.email, tarifa: CFG.tarifa }) }).catch(() => {});
+}
+function activar(){
+ const u = miUsuario(); if (!u) return;
+ if ($('cod').value.trim().toUpperCase() !== (CFG.codigo || 'SOCIO10').toUpperCase()) return toast('Código inválido');
+ u.socio = true; S('urbana_users', USERS); pintar();
+}
+function prio(){
+ const u = miUsuario(); if (!u) return;
+ window.open(wa(`⭐ SOLICITUD PRIORITARIA (socio)\nNombre: ${u.nombre}\n${$('pm').value}`), '_blank');
+}
+iniciarPagina(pintar);
+</script></body></html>

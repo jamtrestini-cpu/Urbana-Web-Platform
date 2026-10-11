@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Urbana | Ropa y Calzado Premium</title>
+<link rel="stylesheet" href="/static/urbana.css">
+<script src="/static/urbana.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4/dist/model-viewer.min.js"></script>
+</head><body>
+<div class="top" id="promo" data-edit="promo"></div>
+<header><a class="logo" href="pagina%20web%20inicio.html">URBANA</a>
+<nav><a href="Catalogo-1.html">Catálogo</a><a href="pago.html">Pago</a>
+<a id="navCuenta" href="login.html">Mi cuenta</a><a href="login.html#admin">Admin</a>
+<a href="Catalogo-1.html" class="cart-badge">🛍️ <span id="cartCount">0</span></a></nav></header>
+
+<section class="hero">
+ <div class="hero-bg"><img id="heroImgTag" alt="" hidden></div>
+ <div class="hero-panel glass glow" data-aos="fade-up">
+  <small>NUEVA COLECCIÓN</small>
+  <h1 id="t" data-edit="banner"></h1>
+  <p id="sub" data-edit="sub"></p>
+  <a class="btn" href="Catalogo-1.html">EXPLORAR COLECCIÓN</a>
+  <label class="imgupload hero-upload"><input type="file" accept="image/*" id="heroFile" hidden>📷 Cambiar foto de portada</label>
+ </div>
+ <div class="hero-chips glass" id="heroChips" data-aos="fade-up" data-aos-delay="150"></div>
+</section>
+
+<section class="wrap">
+ <h2 class="tt" data-aos="fade-up">Destacados</h2>
+ <div class="swiper destacados-swiper" data-aos="fade-up" data-aos-delay="100">
+  <div class="swiper-wrapper" id="destSwiperWrap"></div>
+  <div class="swiper-button-prev"></div>
+  <div class="swiper-button-next"></div>
+  <div class="swiper-pagination"></div>
+ </div>
+</section>
+
+<footer><div class="foot-grid">
+ <div><b>URBANA</b><p>Ropa y calzado con actitud urbana.</p></div>
+ <div><h4>Ayuda</h4><a href="pago.html">Envíos y devoluciones</a><a href="mi-cuenta.html">Rastrea tu pedido</a></div>
+ <div><h4>Marca</h4><a href="pagina%20web%20inicio.html">Sobre Urbana</a><a href="Catalogo-1.html">Catálogo completo</a></div>
+</div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
+<script src="/static/urbana.js"></script>
+
+<script>
+let destSwiper = null;
+function pintar(){
+ $('promo').textContent = CFG.promo;
+ $('t').textContent = CFG.banner;
+ $('sub').textContent = CFG.sub;
+ if (CFG.heroImg) { $('heroImgTag').src = CFG.heroImg; $('heroImgTag').hidden = false; }
+ wireSubidaImagen($('heroFile'),
+  url => { $('heroImgTag').src = url; $('heroImgTag').hidden = false; },
+  url => { CFG.heroImg = url; guardarCfg(); });
+
+ $('heroChips').innerHTML = PRODUCTOS.slice(0, 3).map(p => `
+  <a class="hero-chip" href="Catalogo-1.html">
+   <div class="hero-chip-img">${p.img ? `<img src="${esc(p.img)}" alt="">` : `<svg viewBox="0 0 100 100">${ICONS[p.id] || ICONS.def}</svg>`}</div>
+   <div><b>${esc(p.n)}</b><br><small>${money(p.p)}</small></div>
+  </a>`).join('');
+
+ const editando = isAdmin() && L('urbana_editando', false);
+ $('destSwiperWrap').innerHTML = PRODUCTOS.map(p => `<div class="swiper-slide">${tileHTML(p)}</div>`).join('')
+  + (editando ? `<div class="swiper-slide">${nodoAgregarHTML()}</div>` : '');
+ wireGrid($('destSwiperWrap'));
+
+ if (destSwiper) destSwiper.destroy(true, true);
+ destSwiper = new Swiper('.destacados-swiper', {
+  slidesPerView: 1.15, spaceBetween: 18, grabCursor: true,
+  navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+  pagination: { el: '.swiper-pagination', clickable: true },
+  breakpoints: { 640: { slidesPerView: 2.2 }, 1000: { slidesPerView: 3.2 }, 1300: { slidesPerView: 4 } }
+ });
+}
+iniciarPagina(pintar);
+</script></body></html>
+
+
